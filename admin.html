@@ -139,6 +139,7 @@
       <aside class="sidebar">
         <button class="tab active" data-tab="dashboard" type="button">Dashboard</button>
         <button class="tab" data-tab="pictures" type="button">Pictures</button>
+        <button class="tab" data-tab="data" type="button">Data</button>
       </aside>
       <main class="content">
         <section id="dashboard" class="panel">
@@ -153,6 +154,21 @@
           </div>
           <div id="emptyState" class="empty">No pictures uploaded yet.</div>
           <div id="uploadedGrid" class="uploaded-grid"></div>
+        </section>
+        <section id="data" class="panel hidden">
+          <h2>Data</h2>
+          <p class="note">Save text content to server. It will show on the landing page.</p>
+          <div class="upload-row">
+            <input id="dataTitle" type="text" placeholder="Title" style="width: 100%; max-width: 420px; padding: 10px; border-radius: 8px; border: 1px solid rgba(148,163,184,0.3); background: rgba(15,23,42,0.7); color: #e5e7eb;" />
+          </div>
+          <div class="upload-row">
+            <textarea id="dataBody" placeholder="Description" rows="4" style="width: 100%; max-width: 620px; padding: 10px; border-radius: 8px; border: 1px solid rgba(148,163,184,0.3); background: rgba(15,23,42,0.7); color: #e5e7eb;"></textarea>
+          </div>
+          <div class="upload-row">
+            <button id="saveDataBtn" type="button" style="padding: 10px 14px; border-radius: 8px; border: 0; background: #22c55e; color: #052e16; font-weight: 700; cursor: pointer;">Save Data</button>
+          </div>
+          <div id="dataEmpty" class="empty">No server data yet.</div>
+          <div id="dataList"></div>
         </section>
       </main>
     </div>
@@ -211,11 +227,68 @@
       }
     }
 
+    async function fetchContent() {
+      const response = await fetch("/api/content");
+      if (!response.ok) throw new Error("Failed to fetch content");
+      return response.json();
+    }
+
+    async function renderContentList() {
+      const list = document.getElementById("dataList");
+      const empty = document.getElementById("dataEmpty");
+      list.innerHTML = "";
+      try {
+        const items = await fetchContent();
+        if (!items.length) {
+          empty.classList.remove("hidden");
+          return;
+        }
+        empty.classList.add("hidden");
+        items.forEach((item) => {
+          const card = document.createElement("div");
+          card.style.padding = "12px";
+          card.style.border = "1px solid rgba(148,163,184,0.25)";
+          card.style.borderRadius = "10px";
+          card.style.marginBottom = "10px";
+          card.style.background = "rgba(15,23,42,0.5)";
+          card.innerHTML = `<strong>${item.title}</strong><div style="margin-top:6px;color:#cbd5e1;">${item.body}</div>`;
+          list.appendChild(card);
+        });
+      } catch (error) {
+        empty.textContent = "Failed to load server data.";
+        empty.classList.remove("hidden");
+      }
+    }
+
+    async function saveContent() {
+      const titleInput = document.getElementById("dataTitle");
+      const bodyInput = document.getElementById("dataBody");
+      const title = titleInput.value.trim();
+      const body = bodyInput.value.trim();
+      if (!title || !body) {
+        alert("Please enter title and description.");
+        return;
+      }
+      const response = await fetch("/api/content", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, body })
+      });
+      if (!response.ok) {
+        alert("Failed to save data.");
+        return;
+      }
+      titleInput.value = "";
+      bodyInput.value = "";
+      await renderContentList();
+    }
+
     function setupTabs() {
       const tabs = document.querySelectorAll(".tab");
       const sections = {
         dashboard: document.getElementById("dashboard"),
-        pictures: document.getElementById("pictures")
+        pictures: document.getElementById("pictures"),
+        data: document.getElementById("data")
       };
 
       tabs.forEach((tab) => {
@@ -230,8 +303,10 @@
     }
 
     document.getElementById("imageInput").addEventListener("change", handleImageUpload);
+    document.getElementById("saveDataBtn").addEventListener("click", saveContent);
     setupTabs();
     renderUploadedImages();
+    renderContentList();
   </script>
 </body>
 </html>

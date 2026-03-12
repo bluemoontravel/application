@@ -46,6 +46,25 @@
     .gallery-wrap {
       padding: 22px 24px;
     }
+    .content-wrap {
+      padding: 0 24px 8px;
+    }
+    .content-card {
+      background: #ffffff;
+      border: 1px solid rgba(13, 110, 253, 0.2);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 10px;
+      box-shadow: 0 4px 12px rgba(13, 110, 253, 0.08);
+    }
+    .content-card h3 {
+      margin: 0 0 6px;
+      color: #1e3a8a;
+    }
+    .content-card p {
+      margin: 0;
+      color: #334155;
+    }
     .gallery-title {
       margin: 0 0 12px;
       font-size: 1.3rem;
@@ -78,6 +97,12 @@
         <img src="logo.svg" alt="BlueMoon Logo" />
       </a>
     </header>
+
+    <section class="content-wrap">
+      <h2 class="gallery-title">Updates</h2>
+      <div id="contentEmpty" class="empty">No data saved yet.</div>
+      <div id="contentList"></div>
+    </section>
 
     <section class="gallery-wrap">
       <h2 class="gallery-title">Pictures</h2>
@@ -115,6 +140,34 @@
       }
     }
 
+    async function renderContent() {
+      const list = document.getElementById("contentList");
+      const empty = document.getElementById("contentEmpty");
+      list.innerHTML = "";
+
+      try {
+        const response = await fetch("/api/content");
+        if (!response.ok) throw new Error("Failed to load");
+        const items = await response.json();
+        if (!items.length) {
+          empty.style.display = "block";
+          return;
+        }
+
+        empty.style.display = "none";
+        items.forEach((item) => {
+          const card = document.createElement("article");
+          card.className = "content-card";
+          card.innerHTML = `<h3>${item.title}</h3><p>${item.body}</p>`;
+          list.appendChild(card);
+        });
+      } catch (error) {
+        empty.textContent = "Failed to load updates.";
+        empty.style.display = "block";
+      }
+    }
+
+    renderContent();
     renderGallery();
   </script>
 </body>

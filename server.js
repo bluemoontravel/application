@@ -8,6 +8,8 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const ROOT_DIR = __dirname;
 const UPLOADS_DIR = path.join(ROOT_DIR, "uploads");
+const DATA_DIR = path.join(ROOT_DIR, "data");
+const CONTENT_FILE = path.join(DATA_DIR, "content.json");
 const SPACES_BUCKET = process.env.SPACES_BUCKET;
 const SPACES_REGION = process.env.SPACES_REGION;
 const SPACES_ENDPOINT = process.env.SPACES_ENDPOINT;
@@ -24,6 +26,10 @@ const USE_SPACES = Boolean(
 );
 
 fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+fs.mkdirSync(DATA_DIR, { recursive: true });
+if (!fs.existsSync(CONTENT_FILE)) {
+  fs.writeFileSync(CONTENT_FILE, JSON.stringify({ items: [] }, null, 2));
+}
 
 const localStorage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, UPLOADS_DIR),
@@ -57,8 +63,49 @@ function createFileName(originalName) {
   return `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
 }
 
+function readContentStore() {
+  try {
+    const raw = fs.readFileSync(CONTENT_FILE, "utf8");
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed.items)) return { items: [] };
+    return parsed;
+  } catch (error) {
+    return { items: [] };
+  }
+}
+
+function writeContentStore(store) {
+  fs.writeFileSync(CONTENT_FILE, JSON.stringify(store, null, 2));
+}
+
 app.use(express.static(ROOT_DIR));
 app.use("/uploads", express.static(UPLOADS_DIR));
+app.use(express.json());
+
+app.get("/api/content", (req, res) => {
+  const store = readContentStore();
+  return res.json(store.items);
+});
+
+app.post("/api/content", (req, res) => {
+  const title = String(req.body.title || "").trim();
+  const body = String(req.body.body || "").trim();
+
+  if (!title || !body) {
+    return res.status(400).json({ error: "Title and body are required" });
+  }
+
+  const store = readContentStore();
+  const item = {
+    id: `${Date.now()}-${Math.round(Math.random() * 1e6)}`,
+    title,
+    body,
+    createdAt: new Date().toISOString()
+  };
+  store.items.unshift(item);
+  writeContentStore(store);
+  return res.status(201).json(item);
+});
 
 app.get("/api/pictures", async (req, res) => {
   if (USE_SPACES) {
