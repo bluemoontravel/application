@@ -171,6 +171,16 @@
       padding: 7px 10px;
     }
     .actions .danger { color: #c63434; border-color: #ebbbbb; background: #fff4f4; }
+    .notice {
+      margin: 8px 0 12px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid #bde6c5;
+      background: #eafcf0;
+      color: #0c6b3a;
+      font-weight: 600;
+      display: none;
+    }
     table {
       width: 100%;
       border-collapse: collapse;
@@ -229,11 +239,11 @@
         <h3>Add Destination</h3>
         <div class="form-grid">
           <input id="destName" placeholder="Destination name" />
-          <input id="destRegion" placeholder="Region" />
           <input id="destImage" type="file" accept="image/*" />
           <select id="destStatus"><option value="live">Live</option><option value="offline">Offline</option></select>
           <button class="primary" id="saveDestination">Add Destination</button>
         </div>
+        <div id="destinationNotice" class="notice"></div>
         <div class="cards" id="destinationCards"></div>
       </section>
 
@@ -262,7 +272,7 @@
   </div>
 
   <script>
-    const state = { destinations: [], packages: [], bookings: [] };
+    const state = { destinations: [], packages: [], bookings: [], editingDestinationId: null };
 
     function money(value) {
       return new Intl.NumberFormat("en-US").format(Number(value || 0));
@@ -304,6 +314,13 @@
       renderBookings();
     }
 
+    function showDestinationNotice(message) {
+      const box = document.getElementById("destinationNotice");
+      box.textContent = message;
+      box.style.display = "block";
+      setTimeout(() => { box.style.display = "none"; }, 2500);
+    }
+
     function renderDashboard(data) {
       document.getElementById("stats").innerHTML = `
         <div class="stat">Total Destinations<strong>${data.totalDestinations}</strong></div>
@@ -326,8 +343,8 @@
           <img src="${d.imageUrl}" alt="${d.name}" />
           <div class="card-body">
             <div class="row"><h4 style="margin:0">${d.name}</h4><span class="pill ${d.status === "offline" ? "offline" : ""}">${d.status}</span></div>
-            <div style="color:#607a92">${d.region}</div>
             <div class="actions">
+              <button onclick="editDestination('${d.id}')">Edit</button>
               <button onclick="toggleDestination('${d.id}','${d.status === "live" ? "offline" : "live"}')">${d.status === "live" ? "Make Offline" : "Make Live"}</button>
               <button class="danger" onclick="deleteDestination('${d.id}')">Delete</button>
             </div>
@@ -376,21 +393,48 @@
 
     async function saveDestination() {
       const name = document.getElementById("destName").value.trim();
-      const region = document.getElementById("destRegion").value.trim();
       const imageInput = document.getElementById("destImage");
       const status = document.getElementById("destStatus").value;
-      if (!name || !region || !imageInput.files[0]) return alert("Please fill destination form.");
+      if (!name) return alert("Please enter destination name.");
 
-      const imageUrl = await uploadImage(imageInput);
-      await api("/api/destinations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, region, imageUrl, status })
-      });
+      let imageUrl = null;
+      if (imageInput.files[0]) imageUrl = await uploadImage(imageInput);
+
+      if (state.editingDestinationId) {
+        const payload = { name, status };
+        if (imageUrl) payload.imageUrl = imageUrl;
+        await api(`/api/destinations/${state.editingDestinationId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        showDestinationNotice("Destination updated successfully.");
+      } else {
+        if (!imageUrl) return alert("Please choose destination image.");
+        await api("/api/destinations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, imageUrl, status })
+        });
+        showDestinationNotice("Destination added successfully.");
+      }
+
       document.getElementById("destName").value = "";
-      document.getElementById("destRegion").value = "";
       document.getElementById("destImage").value = "";
+      document.getElementById("saveDestination").textContent = "Add Destination";
+      state.editingDestinationId = null;
       await loadAll();
+    }
+
+    function editDestination(id) {
+      const item = state.destinations.find((d) => d.id === id);
+      if (!item) return;
+      document.getElementById("destName").value = item.name;
+      document.getElementById("destStatus").value = item.status || "live";
+      document.getElementById("saveDestination").textContent = "Update Destination";
+      state.editingDestinationId = id;
+      document.querySelector("[data-tab='destinations']").click();
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
     async function savePackage() {
@@ -457,6 +501,7 @@
     }
 
     window.toggleDestination = toggleDestination;
+    window.editDestination = editDestination;
     window.deleteDestination = deleteDestination;
     window.togglePackage = togglePackage;
     window.deletePackage = deletePackage;

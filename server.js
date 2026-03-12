@@ -122,14 +122,13 @@ app.get("/api/destinations", (req, res) => {
 });
 
 app.post("/api/destinations", (req, res) => {
-  const { name, region, imageUrl, status = "live" } = req.body;
-  if (!name || !region || !imageUrl) return res.status(400).json({ error: "name, region, imageUrl are required" });
+  const { name, imageUrl, status = "live" } = req.body;
+  if (!name || !imageUrl) return res.status(400).json({ error: "name and imageUrl are required" });
 
   const destinations = readStore(DESTINATIONS_FILE);
   const destination = {
     id: createId("dest"),
     name: String(name).trim(),
-    region: String(region).trim(),
     imageUrl: String(imageUrl).trim(),
     status: status === "offline" ? "offline" : "live",
     createdAt: new Date().toISOString()
