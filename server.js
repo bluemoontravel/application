@@ -88,6 +88,10 @@ const s3Client = USE_SPACES
     })
   : null;
 
+function toPublicImageUrl(key) {
+  return `${SPACES_PUBLIC_BASE_URL}/${encodeURIComponent(key).replace(/%2F/g, "/")}`;
+}
+
 app.use(express.static(ROOT_DIR));
 app.use("/uploads", express.static(UPLOADS_DIR));
 app.use(express.json());
@@ -97,17 +101,28 @@ app.post("/api/upload-image", upload.single("image"), async (req, res) => {
 
   if (USE_SPACES) {
     try {
-      const key = createFileName(req.file.originalname || "image.jpg");
-      await s3Client.send(
-        new PutObjectCommand({
-          Bucket: SPACES_BUCKET,
-          Key: key,
-          Body: req.file.buffer,
-          ContentType: req.file.mimetype,
-          ACL: "public-read"
-        })
-      );
-      return res.json({ url: `${SPACES_PUBLIC_BASE_URL}/${key}` });
+      const key = `uploads/${createFileName(req.file.originalname || "image.jpg")}`;
+      try {
+        await s3Client.send(
+          new PutObjectCommand({
+            Bucket: SPACES_BUCKET,
+            Key: key,
+            Body: req.file.buffer,
+            ContentType: req.file.mimetype,
+            ACL: "public-read"
+          })
+        );
+      } catch (aclError) {
+        await s3Client.send(
+          new PutObjectCommand({
+            Bucket: SPACES_BUCKET,
+            Key: key,
+            Body: req.file.buffer,
+            ContentType: req.file.mimetype
+          })
+        );
+      }
+      return res.json({ url: toPublicImageUrl(key) });
     } catch (error) {
       return res.status(500).json({ error: "Failed to upload image" });
     }
