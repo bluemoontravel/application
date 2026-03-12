@@ -3,172 +3,312 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BlueMoon Landing</title>
+  <title>BlueMoon Travel Thailand</title>
   <style>
     :root {
-      --card: #ffffff;
-      --text: #1a2433;
+      --text: #083456;
+      --muted: #5f7890;
+      --line: #cfe0ee;
+      --brand: #04a5e3;
     }
     * { box-sizing: border-box; }
     body {
       margin: 0;
       font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(135deg, #eef3ff, #f8fbff);
       color: var(--text);
-      min-height: 100vh;
+      background: linear-gradient(180deg, #f4fbff, #e6f2fb 44%, #f5f9fd);
     }
-    .page {
-      min-height: 100vh;
+    .wrap { max-width: 1280px; margin: 0 auto; padding: 22px; }
+    .top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .brand img { width: 255px; display: block; }
+    .admin-link {
+      text-decoration: none;
+      color: #0f5e8d;
+      border: 1px solid #b8d2e6;
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-weight: 700;
+      background: #ffffff;
+    }
+    .hero {
+      background: linear-gradient(130deg, #0d6a9e, #09a6de);
+      color: white;
+      border-radius: 26px;
+      padding: 22px;
+      margin-bottom: 18px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero:before {
+      content: "";
+      position: absolute;
+      right: -60px;
+      top: -60px;
+      width: 260px;
+      height: 260px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.12);
+    }
+    .hero h1 { margin: 0 0 8px; font-size: clamp(1.9rem, 4vw, 3rem); }
+    .hero p { margin: 0; max-width: 680px; }
+    .dest-strip {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    .dest-chip {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: white;
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+    .dest-chip.active { outline: 3px solid #86daf9; }
+    .dest-chip:hover { transform: translateY(-3px); }
+    .dest-chip img {
+      width: 100%;
+      height: 95px;
+      object-fit: cover;
+      display: block;
+    }
+    .dest-chip .meta { padding: 8px; }
+    .dest-chip .meta strong { display: block; }
+    .section-title {
+      margin: 22px 0 12px;
+      font-size: 2rem;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 14px;
+    }
+    .card {
+      background: #fff;
+      border: 1px solid #ccdeec;
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 14px 28px rgba(17, 81, 120, 0.08);
       display: flex;
       flex-direction: column;
     }
-    .header {
-      display: flex;
-      align-items: center;
-      background: #ffffff;
-      border-bottom: 1px solid rgba(13, 110, 253, 0.15);
-      padding: 14px 24px;
-      position: sticky;
-      top: 0;
-      z-index: 1000;
+    .card img {
       width: 100%;
-    }
-    .logo {
-      display: inline-flex;
-      align-items: center;
-      text-decoration: none;
-    }
-    .logo img {
-      height: 36px;
-      width: auto;
+      height: 210px;
+      object-fit: cover;
       display: block;
     }
-    .gallery-wrap {
-      padding: 22px 24px;
-    }
-    .content-wrap {
-      padding: 0 24px 8px;
-    }
-    .content-card {
-      background: #ffffff;
-      border: 1px solid rgba(13, 110, 253, 0.2);
+    .card .body { padding: 14px; display: grid; gap: 8px; }
+    .kicker { color: #0096d7; font-weight: 700; letter-spacing: 0.07em; }
+    .muted { color: var(--muted); }
+    .row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    button {
+      border: 0;
       border-radius: 12px;
+      padding: 10px 12px;
+      cursor: pointer;
+      font: inherit;
+      font-weight: 700;
+    }
+    .btn-book {
+      background: linear-gradient(90deg, #11afe3, #0a83b6);
+      color: white;
+    }
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 26, 46, 0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
       padding: 14px;
-      margin-bottom: 10px;
-      box-shadow: 0 4px 12px rgba(13, 110, 253, 0.08);
+      z-index: 50;
     }
-    .content-card h3 {
-      margin: 0 0 6px;
-      color: #1e3a8a;
-    }
-    .content-card p {
-      margin: 0;
-      color: #334155;
-    }
-    .gallery-title {
-      margin: 0 0 12px;
-      font-size: 1.3rem;
-      color: #1e3a8a;
-    }
-    .gallery {
+    .modal.open { display: flex; }
+    .modal-card {
+      width: min(560px, 100%);
+      background: white;
+      border-radius: 18px;
+      border: 1px solid #c8dfee;
+      padding: 16px;
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-      gap: 14px;
+      gap: 10px;
     }
-    .gallery img {
-      width: 100%;
-      aspect-ratio: 1 / 1;
-      object-fit: cover;
+    .form {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: 1fr 1fr;
+    }
+    .form input, .form textarea {
+      border: 1px solid #b8d0e4;
       border-radius: 12px;
-      border: 1px solid rgba(13, 110, 253, 0.2);
-      background: #fff;
-      box-shadow: 0 4px 12px rgba(13, 110, 253, 0.12);
+      padding: 10px 12px;
+      font: inherit;
+      width: 100%;
     }
-    .empty {
-      color: #64748b;
-      padding: 8px 0;
+    .form .full { grid-column: 1/-1; }
+    @media (max-width: 720px) {
+      .form { grid-template-columns: 1fr; }
+      .top { flex-direction: column; align-items: flex-start; gap: 8px; }
     }
   </style>
 </head>
 <body>
-  <div class="page">
-    <header class="header">
-      <a class="logo" href="index.html" aria-label="BlueMoon Home">
-        <img src="logo.svg" alt="BlueMoon Logo" />
-      </a>
+  <div class="wrap">
+    <header class="top">
+      <a class="brand" href="/"><img src="logo.svg" alt="BlueMoon" /></a>
+      <a class="admin-link" href="/admin">Admin Panel</a>
     </header>
 
-    <section class="content-wrap">
-      <h2 class="gallery-title">Updates</h2>
-      <div id="contentEmpty" class="empty">No data saved yet.</div>
-      <div id="contentList"></div>
+    <section class="hero">
+      <h1>Discover Thailand With Handpicked Tour Packages</h1>
+      <p>Choose your destination, compare curated packages, and book directly with BlueMoon Travel in a few steps.</p>
     </section>
 
-    <section class="gallery-wrap">
-      <h2 class="gallery-title">Pictures</h2>
-      <div id="galleryEmpty" class="empty">No pictures uploaded yet.</div>
-      <div id="gallery" class="gallery" aria-label="Uploaded pictures"></div>
-    </section>
+    <div id="destinationStrip" class="dest-strip"></div>
+
+    <h2 class="section-title">Popular Packages For You</h2>
+    <section id="packageGrid" class="grid"></section>
+  </div>
+
+  <div id="bookingModal" class="modal">
+    <div class="modal-card">
+      <div class="row">
+        <h3 style="margin:0">Book Package</h3>
+        <button onclick="closeBooking()">Close</button>
+      </div>
+      <div id="bookingPackageLabel" class="muted"></div>
+      <div class="form">
+        <input id="bookName" placeholder="Your name" />
+        <input id="bookPhone" placeholder="Phone number" />
+        <input id="bookDate" type="date" />
+        <input id="bookTravelers" type="number" min="1" value="2" />
+        <textarea id="bookNotes" class="full" placeholder="Special requests (optional)"></textarea>
+        <button class="btn-book full" onclick="submitBooking()">Confirm Booking</button>
+      </div>
+    </div>
   </div>
 
   <script>
-    async function renderGallery() {
-      const gallery = document.getElementById("gallery");
-      const empty = document.getElementById("galleryEmpty");
+    const state = { destinations: [], packages: [], selectedDestinationId: "all", selectedPackageId: null };
 
-      gallery.innerHTML = "";
-      try {
-        const response = await fetch("/api/pictures");
-        if (!response.ok) throw new Error("Failed to load");
-        const images = await response.json();
-
-        if (!images.length) {
-          empty.style.display = "block";
-          return;
-        }
-
-        empty.style.display = "none";
-        images.forEach((src, index) => {
-          const img = document.createElement("img");
-          img.src = src;
-          img.alt = `BlueMoon picture ${index + 1}`;
-          gallery.appendChild(img);
-        });
-      } catch (error) {
-        empty.textContent = "Failed to load pictures.";
-        empty.style.display = "block";
-      }
+    function money(value) {
+      return new Intl.NumberFormat("en-US").format(Number(value || 0));
     }
 
-    async function renderContent() {
-      const list = document.getElementById("contentList");
-      const empty = document.getElementById("contentEmpty");
-      list.innerHTML = "";
-
-      try {
-        const response = await fetch("/api/content");
-        if (!response.ok) throw new Error("Failed to load");
-        const items = await response.json();
-        if (!items.length) {
-          empty.style.display = "block";
-          return;
-        }
-
-        empty.style.display = "none";
-        items.forEach((item) => {
-          const card = document.createElement("article");
-          card.className = "content-card";
-          card.innerHTML = `<h3>${item.title}</h3><p>${item.body}</p>`;
-          list.appendChild(card);
-        });
-      } catch (error) {
-        empty.textContent = "Failed to load updates.";
-        empty.style.display = "block";
-      }
+    async function api(url, options) {
+      const res = await fetch(url, options);
+      if (!res.ok) throw new Error("Request failed");
+      return res.status === 204 ? null : res.json();
     }
 
-    renderContent();
-    renderGallery();
+    async function loadData() {
+      const [destinations, packages] = await Promise.all([
+        api("/api/destinations"),
+        api("/api/packages")
+      ]);
+      state.destinations = destinations.filter((d) => d.status === "live");
+      state.packages = packages.filter((p) => p.status === "live");
+      renderDestinations();
+      renderPackages();
+    }
+
+    function renderDestinations() {
+      const container = document.getElementById("destinationStrip");
+      const allCount = state.packages.length;
+      const cards = [
+        `<article class="dest-chip ${state.selectedDestinationId === "all" ? "active" : ""}" onclick="setDestination('all')"><div class="meta"><strong>All Destinations</strong><span class="muted">${allCount} packages</span></div></article>`
+      ];
+
+      for (const d of state.destinations) {
+        const count = state.packages.filter((p) => p.destinationId === d.id).length;
+        cards.push(`
+          <article class="dest-chip ${state.selectedDestinationId === d.id ? "active" : ""}" onclick="setDestination('${d.id}')">
+            <img src="${d.imageUrl}" alt="${d.name}" />
+            <div class="meta"><strong>${d.name}</strong><span class="muted">${count} package${count === 1 ? "" : "s"}</span></div>
+          </article>
+        `);
+      }
+      container.innerHTML = cards.join("");
+    }
+
+    function renderPackages() {
+      const grid = document.getElementById("packageGrid");
+      const list = state.packages.filter((item) => state.selectedDestinationId === "all" || item.destinationId === state.selectedDestinationId);
+      const destMap = new Map(state.destinations.map((d) => [d.id, d]));
+
+      grid.innerHTML = list.map((p) => `
+        <article class="card">
+          <img src="${p.imageUrl}" alt="${p.name}" />
+          <div class="body">
+            <div class="kicker">${destMap.get(p.destinationId)?.name || "THAILAND"}</div>
+            <h3 style="margin:0">${p.name}</h3>
+            <div class="muted">${p.duration}</div>
+            <div class="muted">${p.details || ""}</div>
+            <div class="row">
+              <strong>THB ${money(p.priceThb)}</strong>
+              <button class="btn-book" onclick="openBooking('${p.id}')">Book Now</button>
+            </div>
+          </div>
+        </article>
+      `).join("") || "<div class='muted'>No packages available for this destination yet.</div>";
+    }
+
+    function setDestination(id) {
+      state.selectedDestinationId = id;
+      renderDestinations();
+      renderPackages();
+    }
+
+    function openBooking(packageId) {
+      state.selectedPackageId = packageId;
+      const pkg = state.packages.find((p) => p.id === packageId);
+      document.getElementById("bookingPackageLabel").textContent = `${pkg.name} | THB ${money(pkg.priceThb)} | ${pkg.duration}`;
+      document.getElementById("bookingModal").classList.add("open");
+    }
+
+    function closeBooking() {
+      document.getElementById("bookingModal").classList.remove("open");
+    }
+
+    async function submitBooking() {
+      const customerName = document.getElementById("bookName").value.trim();
+      const phone = document.getElementById("bookPhone").value.trim();
+      const travelDate = document.getElementById("bookDate").value;
+      const travelers = document.getElementById("bookTravelers").value;
+      const notes = document.getElementById("bookNotes").value.trim();
+
+      if (!customerName || !phone || !travelDate || !travelers || !state.selectedPackageId) {
+        return alert("Please complete all required booking fields.");
+      }
+
+      await api("/api/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ customerName, phone, travelDate, travelers, notes, packageId: state.selectedPackageId })
+      });
+
+      closeBooking();
+      document.getElementById("bookName").value = "";
+      document.getElementById("bookPhone").value = "";
+      document.getElementById("bookDate").value = "";
+      document.getElementById("bookTravelers").value = "2";
+      document.getElementById("bookNotes").value = "";
+      alert("Booking submitted successfully. Our team will contact you soon.");
+    }
+
+    window.setDestination = setDestination;
+    window.openBooking = openBooking;
+    window.closeBooking = closeBooking;
+    window.submitBooking = submitBooking;
+
+    loadData().catch(() => alert("Failed to load tour data."));
   </script>
 </body>
 </html>

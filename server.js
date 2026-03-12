@@ -2,20 +2,25 @@ const express = require("express");
 const path = require("path");
 const fs = require("fs");
 const multer = require("multer");
-const { S3Client, PutObjectCommand, ListObjectsV2Command } = require("@aws-sdk/client-s3");
+const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const ROOT_DIR = __dirname;
 const UPLOADS_DIR = path.join(ROOT_DIR, "uploads");
 const DATA_DIR = path.join(ROOT_DIR, "data");
-const CONTENT_FILE = path.join(DATA_DIR, "content.json");
+
+const DESTINATIONS_FILE = path.join(DATA_DIR, "destinations.json");
+const PACKAGES_FILE = path.join(DATA_DIR, "packages.json");
+const BOOKINGS_FILE = path.join(DATA_DIR, "bookings.json");
+
 const SPACES_BUCKET = process.env.SPACES_BUCKET;
 const SPACES_REGION = process.env.SPACES_REGION;
 const SPACES_ENDPOINT = process.env.SPACES_ENDPOINT;
 const SPACES_KEY = process.env.SPACES_KEY;
 const SPACES_SECRET = process.env.SPACES_SECRET;
 const SPACES_PUBLIC_BASE_URL = (process.env.SPACES_PUBLIC_BASE_URL || "").replace(/\/$/, "");
+
 const USE_SPACES = Boolean(
   SPACES_BUCKET &&
   SPACES_REGION &&
@@ -27,20 +32,45 @@ const USE_SPACES = Boolean(
 
 fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 fs.mkdirSync(DATA_DIR, { recursive: true });
-if (!fs.existsSync(CONTENT_FILE)) {
-  fs.writeFileSync(CONTENT_FILE, JSON.stringify({ items: [] }, null, 2));
+initializeStore(DESTINATIONS_FILE, []);
+initializeStore(PACKAGES_FILE, []);
+initializeStore(BOOKINGS_FILE, []);
+
+function initializeStore(filePath, defaultValue) {
+  if (!fs.existsSync(filePath)) {
+    fs.writeFileSync(filePath, JSON.stringify(defaultValue, null, 2));
+  }
+}
+
+function readStore(filePath) {
+  try {
+    return JSON.parse(fs.readFileSync(filePath, "utf8"));
+  } catch (error) {
+    return [];
+  }
+}
+
+function writeStore(filePath, data) {
+  fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+}
+
+function createId(prefix) {
+  return `${prefix}_${Date.now()}_${Math.round(Math.random() * 1e6)}`;
+}
+
+function createFileName(originalName) {
+  const ext = path.extname(originalName).toLowerCase();
+  return `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
 }
 
 const localStorage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, UPLOADS_DIR),
-  filename: (req, file, cb) => {
-    cb(null, createFileName(file.originalname || ""));
-  }
+  filename: (req, file, cb) => cb(null, createFileName(file.originalname || "image.jpg"))
 });
 
 const upload = multer({
   storage: USE_SPACES ? multer.memoryStorage() : localStorage,
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: 8 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     if (file.mimetype && file.mimetype.startsWith("image/")) cb(null, true);
     else cb(new Error("Only image files are allowed"));
@@ -58,115 +88,222 @@ const s3Client = USE_SPACES
     })
   : null;
 
-function createFileName(originalName) {
-  const ext = path.extname(originalName).toLowerCase();
-  return `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
-}
-
-function readContentStore() {
-  try {
-    const raw = fs.readFileSync(CONTENT_FILE, "utf8");
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed.items)) return { items: [] };
-    return parsed;
-  } catch (error) {
-    return { items: [] };
-  }
-}
-
-function writeContentStore(store) {
-  fs.writeFileSync(CONTENT_FILE, JSON.stringify(store, null, 2));
-}
-
 app.use(express.static(ROOT_DIR));
 app.use("/uploads", express.static(UPLOADS_DIR));
 app.use(express.json());
 
-app.get("/api/content", (req, res) => {
-  const store = readContentStore();
-  return res.json(store.items);
-});
+app.post("/api/upload-image", upload.single("image"), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: "Image is required" });
 
-app.post("/api/content", (req, res) => {
-  const title = String(req.body.title || "").trim();
-  const body = String(req.body.body || "").trim();
-
-  if (!title || !body) {
-    return res.status(400).json({ error: "Title and body are required" });
-  }
-
-  const store = readContentStore();
-  const item = {
-    id: `${Date.now()}-${Math.round(Math.random() * 1e6)}`,
-    title,
-    body,
-    createdAt: new Date().toISOString()
-  };
-  store.items.unshift(item);
-  writeContentStore(store);
-  return res.status(201).json(item);
-});
-
-app.get("/api/pictures", async (req, res) => {
   if (USE_SPACES) {
     try {
-      const result = await s3Client.send(
-        new ListObjectsV2Command({
-          Bucket: SPACES_BUCKET
+      const key = createFileName(req.file.originalname || "image.jpg");
+      await s3Client.send(
+        new PutObjectCommand({
+          Bucket: SPACES_BUCKET,
+          Key: key,
+          Body: req.file.buffer,
+          ContentType: req.file.mimetype,
+          ACL: "public-read"
         })
       );
-      const files = (result.Contents || [])
-        .filter((item) => item.Key)
-        .sort((a, b) => new Date(b.LastModified) - new Date(a.LastModified))
-        .map((item) => `${SPACES_PUBLIC_BASE_URL}/${item.Key}`);
-      return res.json(files);
+      return res.json({ url: `${SPACES_PUBLIC_BASE_URL}/${key}` });
     } catch (error) {
-      return res.status(500).json({ error: "Failed to read spaces images" });
+      return res.status(500).json({ error: "Failed to upload image" });
     }
   }
 
-  fs.readdir(UPLOADS_DIR, (err, files = []) => {
-    if (err) return res.status(500).json({ error: "Failed to read uploads" });
-
-    const imageExtensions = new Set([".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".svg"]);
-    const images = files
-      .filter((file) => imageExtensions.has(path.extname(file).toLowerCase()))
-      .sort((a, b) => b.localeCompare(a))
-      .map((file) => `/uploads/${file}`);
-
-    return res.json(images);
-  });
+  return res.json({ url: `/uploads/${req.file.filename}` });
 });
 
-app.post("/api/pictures", upload.array("pictures", 20), async (req, res) => {
-  if (!req.files || !req.files.length) {
-    return res.status(400).json({ error: "No files uploaded" });
+app.get("/api/destinations", (req, res) => {
+  const destinations = readStore(DESTINATIONS_FILE);
+  res.json(destinations.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+});
+
+app.post("/api/destinations", (req, res) => {
+  const { name, region, imageUrl, status = "live" } = req.body;
+  if (!name || !region || !imageUrl) return res.status(400).json({ error: "name, region, imageUrl are required" });
+
+  const destinations = readStore(DESTINATIONS_FILE);
+  const destination = {
+    id: createId("dest"),
+    name: String(name).trim(),
+    region: String(region).trim(),
+    imageUrl: String(imageUrl).trim(),
+    status: status === "offline" ? "offline" : "live",
+    createdAt: new Date().toISOString()
+  };
+  destinations.push(destination);
+  writeStore(DESTINATIONS_FILE, destinations);
+  res.status(201).json(destination);
+});
+
+app.put("/api/destinations/:id", (req, res) => {
+  const destinations = readStore(DESTINATIONS_FILE);
+  const index = destinations.findIndex((item) => item.id === req.params.id);
+  if (index === -1) return res.status(404).json({ error: "Destination not found" });
+
+  destinations[index] = {
+    ...destinations[index],
+    ...req.body,
+    id: destinations[index].id
+  };
+  writeStore(DESTINATIONS_FILE, destinations);
+  res.json(destinations[index]);
+});
+
+app.delete("/api/destinations/:id", (req, res) => {
+  const destinations = readStore(DESTINATIONS_FILE);
+  const next = destinations.filter((item) => item.id !== req.params.id);
+  if (next.length === destinations.length) return res.status(404).json({ error: "Destination not found" });
+
+  writeStore(DESTINATIONS_FILE, next);
+  const packages = readStore(PACKAGES_FILE).filter((pkg) => pkg.destinationId !== req.params.id);
+  writeStore(PACKAGES_FILE, packages);
+  res.status(204).end();
+});
+
+app.get("/api/packages", (req, res) => {
+  const destinations = readStore(DESTINATIONS_FILE);
+  const destinationMap = new Map(destinations.map((item) => [item.id, item]));
+  const packages = readStore(PACKAGES_FILE).map((pkg) => ({
+    ...pkg,
+    destinationName: destinationMap.get(pkg.destinationId)?.name || "Unknown"
+  }));
+  res.json(packages.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+});
+
+app.post("/api/packages", (req, res) => {
+  const { name, destinationId, duration, priceThb, details, imageUrl, status = "live" } = req.body;
+  if (!name || !destinationId || !duration || !priceThb || !imageUrl) {
+    return res.status(400).json({ error: "name, destinationId, duration, priceThb, imageUrl are required" });
   }
 
-  if (USE_SPACES) {
-    try {
-      const uploaded = [];
-      for (const file of req.files) {
-        const key = createFileName(file.originalname || "");
-        await s3Client.send(
-          new PutObjectCommand({
-            Bucket: SPACES_BUCKET,
-            Key: key,
-            Body: file.buffer,
-            ContentType: file.mimetype,
-            ACL: "public-read"
-          })
-        );
-        uploaded.push(`${SPACES_PUBLIC_BASE_URL}/${key}`);
-      }
-      return res.json({ uploaded });
-    } catch (error) {
-      return res.status(500).json({ error: "Failed to upload to spaces" });
+  const destinations = readStore(DESTINATIONS_FILE);
+  if (!destinations.find((item) => item.id === destinationId)) {
+    return res.status(400).json({ error: "Invalid destinationId" });
+  }
+
+  const packages = readStore(PACKAGES_FILE);
+  const pkg = {
+    id: createId("pkg"),
+    name: String(name).trim(),
+    destinationId,
+    duration: String(duration).trim(),
+    priceThb: Number(priceThb),
+    details: String(details || "").trim(),
+    imageUrl: String(imageUrl).trim(),
+    status: status === "offline" ? "offline" : "live",
+    createdAt: new Date().toISOString()
+  };
+  packages.push(pkg);
+  writeStore(PACKAGES_FILE, packages);
+  res.status(201).json(pkg);
+});
+
+app.put("/api/packages/:id", (req, res) => {
+  const packages = readStore(PACKAGES_FILE);
+  const index = packages.findIndex((item) => item.id === req.params.id);
+  if (index === -1) return res.status(404).json({ error: "Package not found" });
+
+  packages[index] = {
+    ...packages[index],
+    ...req.body,
+    id: packages[index].id
+  };
+  writeStore(PACKAGES_FILE, packages);
+  res.json(packages[index]);
+});
+
+app.delete("/api/packages/:id", (req, res) => {
+  const packages = readStore(PACKAGES_FILE);
+  const next = packages.filter((item) => item.id !== req.params.id);
+  if (next.length === packages.length) return res.status(404).json({ error: "Package not found" });
+  writeStore(PACKAGES_FILE, next);
+  res.status(204).end();
+});
+
+app.get("/api/bookings", (req, res) => {
+  const packages = readStore(PACKAGES_FILE);
+  const destinations = readStore(DESTINATIONS_FILE);
+  const pkgMap = new Map(packages.map((item) => [item.id, item]));
+  const destMap = new Map(destinations.map((item) => [item.id, item]));
+
+  const bookings = readStore(BOOKINGS_FILE).map((item) => {
+    const pkg = pkgMap.get(item.packageId);
+    const dest = pkg ? destMap.get(pkg.destinationId) : null;
+    return {
+      ...item,
+      packageName: pkg?.name || "Unknown",
+      destinationName: dest?.name || "Unknown"
+    };
+  });
+  res.json(bookings.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+});
+
+app.post("/api/bookings", (req, res) => {
+  const { customerName, phone, travelDate, travelers, notes, packageId } = req.body;
+  if (!customerName || !phone || !travelDate || !travelers || !packageId) {
+    return res.status(400).json({ error: "customerName, phone, travelDate, travelers, packageId are required" });
+  }
+
+  const packages = readStore(PACKAGES_FILE);
+  const pkg = packages.find((item) => item.id === packageId);
+  if (!pkg) return res.status(400).json({ error: "Invalid packageId" });
+
+  const bookings = readStore(BOOKINGS_FILE);
+  const booking = {
+    id: createId("book"),
+    customerName: String(customerName).trim(),
+    phone: String(phone).trim(),
+    travelDate,
+    travelers: Number(travelers),
+    notes: String(notes || "").trim(),
+    packageId,
+    status: "new",
+    createdAt: new Date().toISOString()
+  };
+  bookings.push(booking);
+  writeStore(BOOKINGS_FILE, bookings);
+  res.status(201).json(booking);
+});
+
+app.patch("/api/bookings/:id", (req, res) => {
+  const { status } = req.body;
+  if (!["new", "confirmed", "cancelled"].includes(status)) {
+    return res.status(400).json({ error: "Invalid status" });
+  }
+  const bookings = readStore(BOOKINGS_FILE);
+  const index = bookings.findIndex((item) => item.id === req.params.id);
+  if (index === -1) return res.status(404).json({ error: "Booking not found" });
+
+  bookings[index].status = status;
+  writeStore(BOOKINGS_FILE, bookings);
+  res.json(bookings[index]);
+});
+
+app.get("/api/dashboard", (req, res) => {
+  const destinations = readStore(DESTINATIONS_FILE);
+  const packages = readStore(PACKAGES_FILE);
+  const bookings = readStore(BOOKINGS_FILE);
+
+  const pkgMap = new Map(packages.map((item) => [item.id, item]));
+  let expectedRevenue = 0;
+  for (const booking of bookings) {
+    const pkg = pkgMap.get(booking.packageId);
+    if (pkg && booking.status !== "cancelled") {
+      expectedRevenue += Number(pkg.priceThb || 0) * Number(booking.travelers || 1);
     }
   }
 
-  const uploaded = (req.files || []).map((file) => `/uploads/${file.filename}`);
-  return res.json({ uploaded });
+  res.json({
+    totalDestinations: destinations.length,
+    totalPackages: packages.length,
+    totalBookings: bookings.length,
+    newBookings: bookings.filter((item) => item.status === "new").length,
+    expectedRevenue
+  });
 });
 
 app.get("/", (req, res) => {
@@ -178,9 +315,7 @@ app.get("/admin", (req, res) => {
 });
 
 app.use((err, req, res, next) => {
-  if (err) {
-    return res.status(400).json({ error: err.message || "Upload failed" });
-  }
+  if (err) return res.status(400).json({ error: err.message || "Request failed" });
   return next();
 });
 

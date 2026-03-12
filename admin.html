@@ -6,307 +6,476 @@
   <title>BlueMoon Admin</title>
   <style>
     :root {
-      --text: #e5e7eb;
-      --muted: #94a3b8;
+      --bg: #dbe8f5;
+      --nav: #0a4f7c;
+      --nav-soft: #1f628f;
+      --card: #f7fbff;
+      --text: #0a3455;
+      --muted: #53708d;
+      --line: #bdd0e3;
+      --accent: #09a2db;
     }
     * { box-sizing: border-box; }
     body {
       margin: 0;
       font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-      background: radial-gradient(circle at top, #1e293b, #0b1020 65%);
       color: var(--text);
-      min-height: 100vh;
+      background: radial-gradient(circle at 15% 5%, #eaf4ff, var(--bg) 45%);
     }
-    .page {
+    .app {
       min-height: 100vh;
+      display: grid;
+      grid-template-columns: 300px 1fr;
+    }
+    .side {
+      background: linear-gradient(180deg, #0b4b77, #0a6ca0);
+      padding: 20px;
+      color: #e8f6ff;
       display: flex;
       flex-direction: column;
+      gap: 14px;
     }
-    .header {
+    .brand {
       display: flex;
+      gap: 12px;
       align-items: center;
-      background: #ffffff;
-      border-bottom: 1px solid rgba(13, 110, 253, 0.15);
-      padding: 14px 24px;
-      position: sticky;
-      top: 0;
-      z-index: 1000;
-      width: 100%;
+      margin-bottom: 8px;
     }
-    .logo {
-      display: inline-flex;
-      align-items: center;
-      text-decoration: none;
+    .brand img {
+      width: 160px;
+      background: white;
+      border-radius: 12px;
+      padding: 8px 10px;
     }
-    .logo img {
-      height: 36px;
-      width: auto;
-      display: block;
+    .brand h1 {
+      margin: 0;
+      font-size: 2rem;
+      line-height: 1;
     }
-    .layout {
-      display: flex;
-      flex: 1;
-      min-height: 0;
-    }
-    .sidebar {
-      width: 220px;
-      background: rgba(15, 23, 42, 0.8);
-      border-right: 1px solid rgba(148, 163, 184, 0.2);
-      padding: 18px 12px;
+    .tabs {
+      display: grid;
+      gap: 10px;
     }
     .tab {
-      display: block;
-      width: 100%;
-      text-align: left;
-      color: #e2e8f0;
-      padding: 10px 12px;
-      border-radius: 8px;
-      margin-bottom: 8px;
-      font-weight: 600;
-      background: transparent;
-      border: 1px solid transparent;
+      border: 1px solid rgba(189, 223, 245, 0.35);
+      background: var(--nav-soft);
+      border-radius: 14px;
+      padding: 12px 16px;
+      color: white;
+      font-size: 1.05rem;
+      font-weight: 700;
       cursor: pointer;
-      font-size: 1rem;
-    }
-    .tab:hover {
-      background: rgba(148, 163, 184, 0.12);
-      border-color: rgba(148, 163, 184, 0.25);
+      text-align: left;
     }
     .tab.active {
-      background: rgba(34, 197, 94, 0.16);
-      border-color: rgba(34, 197, 94, 0.4);
-      color: #bbf7d0;
+      background: #f0f9ff;
+      color: #0d3a5a;
+      border-color: white;
     }
-    .content {
-      flex: 1;
+    .main {
       padding: 22px;
+      display: grid;
+      gap: 14px;
     }
-    .panel {
-      background: rgba(17, 24, 39, 0.9);
-      border: 1px solid rgba(148, 163, 184, 0.2);
-      border-radius: 14px;
-      padding: 22px;
+    .top {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: 18px 22px;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
     }
-    .panel h2 {
-      margin: 0 0 8px;
-      font-size: 1.4rem;
+    .top h2 {
+      margin: 4px 0 0;
+      font-size: 2.1rem;
     }
-    .panel p {
-      margin: 0;
-      color: var(--muted);
+    .section {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      padding: 18px;
     }
-    .upload-row {
+    .hidden { display: none; }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
       margin-bottom: 14px;
     }
-    input[type="file"] {
-      color: var(--text);
+    .stat {
+      background: linear-gradient(135deg, #e9f7ff, #f9fdff);
+      border: 1px solid #c5def1;
+      border-radius: 14px;
+      padding: 12px;
     }
-    .note {
-      color: var(--muted);
-      font-size: 0.95rem;
-      margin-bottom: 12px;
+    .stat strong {
+      display: block;
+      font-size: 1.7rem;
+      margin-top: 4px;
     }
-    .uploaded-grid {
+    .form-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 10px;
+      grid-template-columns: repeat(5, minmax(120px, 1fr));
+      margin-bottom: 14px;
+    }
+    .form-grid.packages { grid-template-columns: repeat(6, minmax(120px, 1fr)); }
+    input, select, textarea, button {
+      border-radius: 12px;
+      border: 1px solid #b8d0e4;
+      padding: 10px 12px;
+      font: inherit;
+    }
+    button.primary {
+      background: linear-gradient(90deg, #11afe3, #0a83b6);
+      color: white;
+      border: 0;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
       gap: 12px;
     }
-    .uploaded-grid img {
+    .card {
+      border: 1px solid #c2d8ea;
+      border-radius: 16px;
+      overflow: hidden;
+      background: white;
+    }
+    .card img {
       width: 100%;
-      aspect-ratio: 1 / 1;
+      height: 165px;
       object-fit: cover;
-      border-radius: 10px;
-      border: 1px solid rgba(148, 163, 184, 0.25);
-      background: #0f172a;
+      display: block;
     }
-    .empty {
-      color: var(--muted);
-      padding: 8px 0;
+    .card-body { padding: 12px; }
+    .row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .pill {
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      background: #d8f6e5;
+      color: #0f7c4c;
     }
-    .hidden {
-      display: none;
+    .pill.offline { background: #e7edf3; color: #4f6275; }
+    .actions { display: flex; gap: 8px; margin-top: 8px; }
+    .actions button {
+      background: #f3f9ff;
+      border: 1px solid #bfd8ea;
+      color: #11486f;
+      cursor: pointer;
+      padding: 7px 10px;
+    }
+    .actions .danger { color: #c63434; border-color: #ebbbbb; background: #fff4f4; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95rem;
+    }
+    th, td {
+      padding: 10px 8px;
+      border-bottom: 1px solid #d4e4f2;
+      text-align: left;
+    }
+    @media (max-width: 1024px) {
+      .app { grid-template-columns: 1fr; }
+      .side { border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; }
+      .form-grid, .form-grid.packages { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 640px) {
+      .form-grid, .form-grid.packages { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
-  <div class="page">
-    <header class="header">
-      <a class="logo" href="index.html" aria-label="BlueMoon Home">
-        <img src="logo.svg" alt="BlueMoon Logo" />
-      </a>
-    </header>
-    <div class="layout">
-      <aside class="sidebar">
-        <button class="tab active" data-tab="dashboard" type="button">Dashboard</button>
-        <button class="tab" data-tab="pictures" type="button">Pictures</button>
-        <button class="tab" data-tab="data" type="button">Data</button>
-      </aside>
-      <main class="content">
-        <section id="dashboard" class="panel">
-          <h2>Dashboard</h2>
-          <p>Use the Pictures tab to upload images for the landing page.</p>
-        </section>
-        <section id="pictures" class="panel hidden">
-          <h2>Pictures</h2>
-          <p class="note">Upload pictures here. They will show on the landing page automatically.</p>
-          <div class="upload-row">
-            <input id="imageInput" type="file" accept="image/*" multiple />
-          </div>
-          <div id="emptyState" class="empty">No pictures uploaded yet.</div>
-          <div id="uploadedGrid" class="uploaded-grid"></div>
-        </section>
-        <section id="data" class="panel hidden">
-          <h2>Data</h2>
-          <p class="note">Save text content to server. It will show on the landing page.</p>
-          <div class="upload-row">
-            <input id="dataTitle" type="text" placeholder="Title" style="width: 100%; max-width: 420px; padding: 10px; border-radius: 8px; border: 1px solid rgba(148,163,184,0.3); background: rgba(15,23,42,0.7); color: #e5e7eb;" />
-          </div>
-          <div class="upload-row">
-            <textarea id="dataBody" placeholder="Description" rows="4" style="width: 100%; max-width: 620px; padding: 10px; border-radius: 8px; border: 1px solid rgba(148,163,184,0.3); background: rgba(15,23,42,0.7); color: #e5e7eb;"></textarea>
-          </div>
-          <div class="upload-row">
-            <button id="saveDataBtn" type="button" style="padding: 10px 14px; border-radius: 8px; border: 0; background: #22c55e; color: #052e16; font-weight: 700; cursor: pointer;">Save Data</button>
-          </div>
-          <div id="dataEmpty" class="empty">No server data yet.</div>
-          <div id="dataList"></div>
-        </section>
-      </main>
-    </div>
+  <div class="app">
+    <aside class="side">
+      <div class="brand">
+        <img src="logo.svg" alt="BlueMoon" />
+        <h1>Owner<br />Control</h1>
+      </div>
+      <div class="tabs">
+        <button class="tab active" data-tab="dashboard">Dashboard</button>
+        <button class="tab" data-tab="destinations">Destinations</button>
+        <button class="tab" data-tab="packages">Packages</button>
+        <button class="tab" data-tab="bookings">Bookings</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <section class="top">
+        <div>
+          <div style="font-weight:700;letter-spacing:0.08em;color:#1972a2;">OPERATIONS OVERVIEW</div>
+          <h2>BlueMoon Travel Thailand</h2>
+        </div>
+        <div id="todayDate" style="font-size:1.5rem;font-weight:700;color:#55718b;"></div>
+      </section>
+
+      <section id="dashboard" class="section">
+        <h3>Booking Details Snapshot</h3>
+        <div class="stats" id="stats"></div>
+        <h4>Recent Bookings</h4>
+        <table>
+          <thead><tr><th>Customer</th><th>Package</th><th>Date</th><th>Travelers</th><th>Status</th></tr></thead>
+          <tbody id="recentBookings"></tbody>
+        </table>
+      </section>
+
+      <section id="destinations" class="section hidden">
+        <h3>Add Destination</h3>
+        <div class="form-grid">
+          <input id="destName" placeholder="Destination name" />
+          <input id="destRegion" placeholder="Region" />
+          <input id="destImage" type="file" accept="image/*" />
+          <select id="destStatus"><option value="live">Live</option><option value="offline">Offline</option></select>
+          <button class="primary" id="saveDestination">Add Destination</button>
+        </div>
+        <div class="cards" id="destinationCards"></div>
+      </section>
+
+      <section id="packages" class="section hidden">
+        <h3>Add Package</h3>
+        <div class="form-grid packages">
+          <input id="pkgName" placeholder="Package name" />
+          <select id="pkgDestination"></select>
+          <input id="pkgDuration" placeholder="Duration (e.g. 4D/3N)" />
+          <input id="pkgPrice" type="number" placeholder="Price THB" />
+          <input id="pkgImage" type="file" accept="image/*" />
+          <button class="primary" id="savePackage">Add Package</button>
+          <textarea id="pkgDetails" placeholder="Package details" style="grid-column: 1/-1;"></textarea>
+        </div>
+        <div class="cards" id="packageCards"></div>
+      </section>
+
+      <section id="bookings" class="section hidden">
+        <h3>Booking Management</h3>
+        <table>
+          <thead><tr><th>Customer</th><th>Phone</th><th>Package</th><th>Travel Date</th><th>Travelers</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody id="bookingRows"></tbody>
+        </table>
+      </section>
+    </main>
   </div>
 
   <script>
-    async function fetchImages() {
-      const response = await fetch("/api/pictures");
-      if (!response.ok) throw new Error("Failed to fetch pictures");
-      return response.json();
+    const state = { destinations: [], packages: [], bookings: [] };
+
+    function money(value) {
+      return new Intl.NumberFormat("en-US").format(Number(value || 0));
     }
 
-    async function renderUploadedImages() {
-      const grid = document.getElementById("uploadedGrid");
-      const empty = document.getElementById("emptyState");
-
-      grid.innerHTML = "";
-      try {
-        const images = await fetchImages();
-        if (!images.length) {
-          empty.classList.remove("hidden");
-          return;
-        }
-
-        empty.classList.add("hidden");
-        images.forEach((src, index) => {
-          const img = document.createElement("img");
-          img.src = src;
-          img.alt = `Uploaded picture ${index + 1}`;
-          grid.appendChild(img);
-        });
-      } catch (error) {
-        empty.textContent = "Failed to load pictures.";
-        empty.classList.remove("hidden");
-      }
+    function dateLabel(iso) {
+      return new Date(iso).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "2-digit" });
     }
 
-    async function handleImageUpload(event) {
-      const files = Array.from(event.target.files || []);
-      if (!files.length) return;
-
-      const formData = new FormData();
-      files.forEach((file) => formData.append("pictures", file));
-
-      try {
-        const response = await fetch("/api/pictures", {
-          method: "POST",
-          body: formData
-        });
-        if (!response.ok) throw new Error("Upload failed");
-        await renderUploadedImages();
-      } catch (error) {
-        alert("Image upload failed. Please try again.");
-      } finally {
-        event.target.value = "";
-      }
+    async function api(url, options) {
+      const res = await fetch(url, options);
+      if (!res.ok) throw new Error("Request failed");
+      if (res.status === 204) return null;
+      return res.json();
     }
 
-    async function fetchContent() {
-      const response = await fetch("/api/content");
-      if (!response.ok) throw new Error("Failed to fetch content");
-      return response.json();
+    async function uploadImage(fileInput) {
+      const file = fileInput.files[0];
+      if (!file) throw new Error("Image is required");
+      const fd = new FormData();
+      fd.append("image", file);
+      const result = await api("/api/upload-image", { method: "POST", body: fd });
+      return result.url;
     }
 
-    async function renderContentList() {
-      const list = document.getElementById("dataList");
-      const empty = document.getElementById("dataEmpty");
-      list.innerHTML = "";
-      try {
-        const items = await fetchContent();
-        if (!items.length) {
-          empty.classList.remove("hidden");
-          return;
-        }
-        empty.classList.add("hidden");
-        items.forEach((item) => {
-          const card = document.createElement("div");
-          card.style.padding = "12px";
-          card.style.border = "1px solid rgba(148,163,184,0.25)";
-          card.style.borderRadius = "10px";
-          card.style.marginBottom = "10px";
-          card.style.background = "rgba(15,23,42,0.5)";
-          card.innerHTML = `<strong>${item.title}</strong><div style="margin-top:6px;color:#cbd5e1;">${item.body}</div>`;
-          list.appendChild(card);
-        });
-      } catch (error) {
-        empty.textContent = "Failed to load server data.";
-        empty.classList.remove("hidden");
-      }
+    async function loadAll() {
+      const [dashboard, destinations, packages, bookings] = await Promise.all([
+        api("/api/dashboard"),
+        api("/api/destinations"),
+        api("/api/packages"),
+        api("/api/bookings")
+      ]);
+      state.destinations = destinations;
+      state.packages = packages;
+      state.bookings = bookings;
+      renderDashboard(dashboard);
+      renderDestinations();
+      renderPackages();
+      renderBookings();
     }
 
-    async function saveContent() {
-      const titleInput = document.getElementById("dataTitle");
-      const bodyInput = document.getElementById("dataBody");
-      const title = titleInput.value.trim();
-      const body = bodyInput.value.trim();
-      if (!title || !body) {
-        alert("Please enter title and description.");
-        return;
-      }
-      const response = await fetch("/api/content", {
+    function renderDashboard(data) {
+      document.getElementById("stats").innerHTML = `
+        <div class="stat">Total Destinations<strong>${data.totalDestinations}</strong></div>
+        <div class="stat">Total Packages<strong>${data.totalPackages}</strong></div>
+        <div class="stat">Total Bookings<strong>${data.totalBookings}</strong></div>
+        <div class="stat">New Bookings<strong>${data.newBookings}</strong></div>
+        <div class="stat">Expected Revenue (THB)<strong>${money(data.expectedRevenue)}</strong></div>
+      `;
+      document.getElementById("recentBookings").innerHTML = state.bookings.slice(0, 6).map((b) => `
+        <tr><td>${b.customerName}</td><td>${b.packageName}</td><td>${dateLabel(b.travelDate)}</td><td>${b.travelers}</td><td>${b.status}</td></tr>
+      `).join("") || "<tr><td colspan='5'>No bookings yet.</td></tr>";
+    }
+
+    function renderDestinations() {
+      const select = document.getElementById("pkgDestination");
+      select.innerHTML = state.destinations.map((d) => `<option value="${d.id}">${d.name}</option>`).join("");
+
+      document.getElementById("destinationCards").innerHTML = state.destinations.map((d) => `
+        <article class="card">
+          <img src="${d.imageUrl}" alt="${d.name}" />
+          <div class="card-body">
+            <div class="row"><h4 style="margin:0">${d.name}</h4><span class="pill ${d.status === "offline" ? "offline" : ""}">${d.status}</span></div>
+            <div style="color:#607a92">${d.region}</div>
+            <div class="actions">
+              <button onclick="toggleDestination('${d.id}','${d.status === "live" ? "offline" : "live"}')">${d.status === "live" ? "Make Offline" : "Make Live"}</button>
+              <button class="danger" onclick="deleteDestination('${d.id}')">Delete</button>
+            </div>
+          </div>
+        </article>
+      `).join("") || "<div>No destinations yet.</div>";
+    }
+
+    function renderPackages() {
+      document.getElementById("packageCards").innerHTML = state.packages.map((p) => `
+        <article class="card">
+          <img src="${p.imageUrl}" alt="${p.name}" />
+          <div class="card-body">
+            <div class="row"><h4 style="margin:0">${p.name}</h4><span class="pill ${p.status === "offline" ? "offline" : ""}">${p.status}</span></div>
+            <div style="color:#607a92">${p.destinationName}</div>
+            <div style="font-weight:700;margin-top:4px">${p.duration} | THB ${money(p.priceThb)}</div>
+            <div style="color:#607a92;margin-top:4px">${p.details || ""}</div>
+            <div class="actions">
+              <button onclick="togglePackage('${p.id}','${p.status === "live" ? "offline" : "live"}')">${p.status === "live" ? "Make Offline" : "Make Live"}</button>
+              <button class="danger" onclick="deletePackage('${p.id}')">Delete</button>
+            </div>
+          </div>
+        </article>
+      `).join("") || "<div>No packages yet.</div>";
+    }
+
+    function renderBookings() {
+      document.getElementById("bookingRows").innerHTML = state.bookings.map((b) => `
+        <tr>
+          <td>${b.customerName}</td>
+          <td>${b.phone}</td>
+          <td>${b.packageName}</td>
+          <td>${dateLabel(b.travelDate)}</td>
+          <td>${b.travelers}</td>
+          <td>${b.status}</td>
+          <td>
+            <select onchange="updateBooking('${b.id}', this.value)">
+              <option value="new" ${b.status === "new" ? "selected" : ""}>New</option>
+              <option value="confirmed" ${b.status === "confirmed" ? "selected" : ""}>Confirmed</option>
+              <option value="cancelled" ${b.status === "cancelled" ? "selected" : ""}>Cancelled</option>
+            </select>
+          </td>
+        </tr>
+      `).join("") || "<tr><td colspan='7'>No bookings yet.</td></tr>";
+    }
+
+    async function saveDestination() {
+      const name = document.getElementById("destName").value.trim();
+      const region = document.getElementById("destRegion").value.trim();
+      const imageInput = document.getElementById("destImage");
+      const status = document.getElementById("destStatus").value;
+      if (!name || !region || !imageInput.files[0]) return alert("Please fill destination form.");
+
+      const imageUrl = await uploadImage(imageInput);
+      await api("/api/destinations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, body })
+        body: JSON.stringify({ name, region, imageUrl, status })
       });
-      if (!response.ok) {
-        alert("Failed to save data.");
-        return;
-      }
-      titleInput.value = "";
-      bodyInput.value = "";
-      await renderContentList();
+      document.getElementById("destName").value = "";
+      document.getElementById("destRegion").value = "";
+      document.getElementById("destImage").value = "";
+      await loadAll();
     }
 
-    function setupTabs() {
-      const tabs = document.querySelectorAll(".tab");
-      const sections = {
-        dashboard: document.getElementById("dashboard"),
-        pictures: document.getElementById("pictures"),
-        data: document.getElementById("data")
-      };
+    async function savePackage() {
+      const name = document.getElementById("pkgName").value.trim();
+      const destinationId = document.getElementById("pkgDestination").value;
+      const duration = document.getElementById("pkgDuration").value.trim();
+      const priceThb = document.getElementById("pkgPrice").value;
+      const details = document.getElementById("pkgDetails").value.trim();
+      const imageInput = document.getElementById("pkgImage");
+      if (!name || !destinationId || !duration || !priceThb || !imageInput.files[0]) return alert("Please fill package form.");
 
-      tabs.forEach((tab) => {
-        tab.addEventListener("click", () => {
-          tabs.forEach((t) => t.classList.remove("active"));
-          tab.classList.add("active");
-
-          Object.values(sections).forEach((section) => section.classList.add("hidden"));
-          sections[tab.dataset.tab].classList.remove("hidden");
-        });
+      const imageUrl = await uploadImage(imageInput);
+      await api("/api/packages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, destinationId, duration, priceThb, details, imageUrl, status: "live" })
       });
+
+      document.getElementById("pkgName").value = "";
+      document.getElementById("pkgDuration").value = "";
+      document.getElementById("pkgPrice").value = "";
+      document.getElementById("pkgDetails").value = "";
+      document.getElementById("pkgImage").value = "";
+      await loadAll();
     }
 
-    document.getElementById("imageInput").addEventListener("change", handleImageUpload);
-    document.getElementById("saveDataBtn").addEventListener("click", saveContent);
-    setupTabs();
-    renderUploadedImages();
-    renderContentList();
+    async function toggleDestination(id, status) {
+      await api(`/api/destinations/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status })
+      });
+      await loadAll();
+    }
+
+    async function deleteDestination(id) {
+      if (!confirm("Delete this destination and related packages?")) return;
+      await api(`/api/destinations/${id}`, { method: "DELETE" });
+      await loadAll();
+    }
+
+    async function togglePackage(id, status) {
+      await api(`/api/packages/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status })
+      });
+      await loadAll();
+    }
+
+    async function deletePackage(id) {
+      if (!confirm("Delete this package?")) return;
+      await api(`/api/packages/${id}`, { method: "DELETE" });
+      await loadAll();
+    }
+
+    async function updateBooking(id, status) {
+      await api(`/api/bookings/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status })
+      });
+      await loadAll();
+    }
+
+    window.toggleDestination = toggleDestination;
+    window.deleteDestination = deleteDestination;
+    window.togglePackage = togglePackage;
+    window.deletePackage = deletePackage;
+    window.updateBooking = updateBooking;
+
+    document.getElementById("todayDate").textContent = new Date().toLocaleDateString("en-US", { weekday: "short", year: "numeric", month: "short", day: "numeric" });
+    document.getElementById("saveDestination").addEventListener("click", saveDestination);
+    document.getElementById("savePackage").addEventListener("click", savePackage);
+
+    document.querySelectorAll(".tab").forEach((tab) => {
+      tab.addEventListener("click", () => {
+        document.querySelectorAll(".tab").forEach((item) => item.classList.remove("active"));
+        tab.classList.add("active");
+        document.querySelectorAll(".section").forEach((sec) => sec.classList.add("hidden"));
+        document.getElementById(tab.dataset.tab).classList.remove("hidden");
+      });
+    });
+
+    loadAll().catch(() => alert("Failed to load admin data."));
   </script>
 </body>
 </html>
