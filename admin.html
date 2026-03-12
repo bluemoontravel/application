@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BlueMoon Admin</title>
+  <style>
+    :root {
+      --text: #e5e7eb;
+      --muted: #94a3b8;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: radial-gradient(circle at top, #1e293b, #0b1020 65%);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    .page {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      background: #ffffff;
+      border-bottom: 1px solid rgba(13, 110, 253, 0.15);
+      padding: 14px 24px;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      width: 100%;
+    }
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      text-decoration: none;
+    }
+    .logo img {
+      height: 36px;
+      width: auto;
+      display: block;
+    }
+    .layout {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+    }
+    .sidebar {
+      width: 220px;
+      background: rgba(15, 23, 42, 0.8);
+      border-right: 1px solid rgba(148, 163, 184, 0.2);
+      padding: 18px 12px;
+    }
+    .tab {
+      display: block;
+      width: 100%;
+      text-align: left;
+      color: #e2e8f0;
+      padding: 10px 12px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      font-weight: 600;
+      background: transparent;
+      border: 1px solid transparent;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+    .tab:hover {
+      background: rgba(148, 163, 184, 0.12);
+      border-color: rgba(148, 163, 184, 0.25);
+    }
+    .tab.active {
+      background: rgba(34, 197, 94, 0.16);
+      border-color: rgba(34, 197, 94, 0.4);
+      color: #bbf7d0;
+    }
+    .content {
+      flex: 1;
+      padding: 22px;
+    }
+    .panel {
+      background: rgba(17, 24, 39, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: 14px;
+      padding: 22px;
+    }
+    .panel h2 {
+      margin: 0 0 8px;
+      font-size: 1.4rem;
+    }
+    .panel p {
+      margin: 0;
+      color: var(--muted);
+    }
+    .upload-row {
+      margin-bottom: 14px;
+    }
+    input[type="file"] {
+      color: var(--text);
+    }
+    .note {
+      color: var(--muted);
+      font-size: 0.95rem;
+      margin-bottom: 12px;
+    }
+    .uploaded-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 12px;
+    }
+    .uploaded-grid img {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      object-fit: cover;
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      background: #0f172a;
+    }
+    .empty {
+      color: var(--muted);
+      padding: 8px 0;
+    }
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="header">
+      <a class="logo" href="index.html" aria-label="BlueMoon Home">
+        <img src="logo.svg" alt="BlueMoon Logo" />
+      </a>
+    </header>
+    <div class="layout">
+      <aside class="sidebar">
+        <button class="tab active" data-tab="dashboard" type="button">Dashboard</button>
+        <button class="tab" data-tab="pictures" type="button">Pictures</button>
+      </aside>
+      <main class="content">
+        <section id="dashboard" class="panel">
+          <h2>Dashboard</h2>
+          <p>Use the Pictures tab to upload images for the landing page.</p>
+        </section>
+        <section id="pictures" class="panel hidden">
+          <h2>Pictures</h2>
+          <p class="note">Upload pictures here. They will show on the landing page automatically.</p>
+          <div class="upload-row">
+            <input id="imageInput" type="file" accept="image/*" multiple />
+          </div>
+          <div id="emptyState" class="empty">No pictures uploaded yet.</div>
+          <div id="uploadedGrid" class="uploaded-grid"></div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "bluemoon_pictures";
+
+    function getStoredImages() {
+      try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function setStoredImages(images) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(images));
+    }
+
+    function renderUploadedImages() {
+      const grid = document.getElementById("uploadedGrid");
+      const empty = document.getElementById("emptyState");
+      const images = getStoredImages();
+
+      grid.innerHTML = "";
+      if (!images.length) {
+        empty.classList.remove("hidden");
+        return;
+      }
+
+      empty.classList.add("hidden");
+      images.forEach((src, index) => {
+        const img = document.createElement("img");
+        img.src = src;
+        img.alt = `Uploaded picture ${index + 1}`;
+        grid.appendChild(img);
+      });
+    }
+
+    function readFileAsDataURL(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function handleImageUpload(event) {
+      const files = Array.from(event.target.files || []);
+      if (!files.length) return;
+
+      const dataUrls = await Promise.all(files.map(readFileAsDataURL));
+      const current = getStoredImages();
+      setStoredImages(current.concat(dataUrls));
+      renderUploadedImages();
+      event.target.value = "";
+    }
+
+    function setupTabs() {
+      const tabs = document.querySelectorAll(".tab");
+      const sections = {
+        dashboard: document.getElementById("dashboard"),
+        pictures: document.getElementById("pictures")
+      };
+
+      tabs.forEach((tab) => {
+        tab.addEventListener("click", () => {
+          tabs.forEach((t) => t.classList.remove("active"));
+          tab.classList.add("active");
+
+          Object.values(sections).forEach((section) => section.classList.add("hidden"));
+          sections[tab.dataset.tab].classList.remove("hidden");
+        });
+      });
+    }
+
+    document.getElementById("imageInput").addEventListener("change", handleImageUpload);
+    setupTabs();
+    renderUploadedImages();
+  </script>
+</body>
+</html>

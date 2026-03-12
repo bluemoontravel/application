@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BlueMoon Landing</title>
+  <style>
+    :root {
+      --card: #ffffff;
+      --text: #1a2433;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #eef3ff, #f8fbff);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    .page {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      background: #ffffff;
+      border-bottom: 1px solid rgba(13, 110, 253, 0.15);
+      padding: 14px 24px;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      width: 100%;
+    }
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      text-decoration: none;
+    }
+    .logo img {
+      height: 36px;
+      width: auto;
+      display: block;
+    }
+    .gallery-wrap {
+      padding: 22px 24px;
+    }
+    .gallery-title {
+      margin: 0 0 12px;
+      font-size: 1.3rem;
+      color: #1e3a8a;
+    }
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 14px;
+    }
+    .gallery img {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      object-fit: cover;
+      border-radius: 12px;
+      border: 1px solid rgba(13, 110, 253, 0.2);
+      background: #fff;
+      box-shadow: 0 4px 12px rgba(13, 110, 253, 0.12);
+    }
+    .empty {
+      color: #64748b;
+      padding: 8px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="header">
+      <a class="logo" href="index.html" aria-label="BlueMoon Home">
+        <img src="logo.svg" alt="BlueMoon Logo" />
+      </a>
+    </header>
+
+    <section class="gallery-wrap">
+      <h2 class="gallery-title">Pictures</h2>
+      <div id="galleryEmpty" class="empty">No pictures uploaded yet.</div>
+      <div id="gallery" class="gallery" aria-label="Uploaded pictures"></div>
+    </section>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "bluemoon_pictures";
+
+    function getStoredImages() {
+      try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function renderGallery() {
+      const gallery = document.getElementById("gallery");
+      const empty = document.getElementById("galleryEmpty");
+      const images = getStoredImages();
+
+      gallery.innerHTML = "";
+      if (!images.length) {
+        empty.style.display = "block";
+        return;
+      }
+
+      empty.style.display = "none";
+      images.forEach((src, index) => {
+        const img = document.createElement("img");
+        img.src = src;
+        img.alt = `BlueMoon picture ${index + 1}`;
+        gallery.appendChild(img);
+      });
+    }
+
+    window.addEventListener("storage", (event) => {
+      if (event.key === STORAGE_KEY) renderGallery();
+    });
+
+    renderGallery();
+  </script>
+</body>
+</html>
