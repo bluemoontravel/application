@@ -159,58 +159,56 @@
   </div>
 
   <script>
-    const STORAGE_KEY = "bluemoon_pictures";
-
-    function getStoredImages() {
-      try {
-        return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-      } catch (e) {
-        return [];
-      }
+    async function fetchImages() {
+      const response = await fetch("/api/pictures");
+      if (!response.ok) throw new Error("Failed to fetch pictures");
+      return response.json();
     }
 
-    function setStoredImages(images) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(images));
-    }
-
-    function renderUploadedImages() {
+    async function renderUploadedImages() {
       const grid = document.getElementById("uploadedGrid");
       const empty = document.getElementById("emptyState");
-      const images = getStoredImages();
 
       grid.innerHTML = "";
-      if (!images.length) {
+      try {
+        const images = await fetchImages();
+        if (!images.length) {
+          empty.classList.remove("hidden");
+          return;
+        }
+
+        empty.classList.add("hidden");
+        images.forEach((src, index) => {
+          const img = document.createElement("img");
+          img.src = src;
+          img.alt = `Uploaded picture ${index + 1}`;
+          grid.appendChild(img);
+        });
+      } catch (error) {
+        empty.textContent = "Failed to load pictures.";
         empty.classList.remove("hidden");
-        return;
       }
-
-      empty.classList.add("hidden");
-      images.forEach((src, index) => {
-        const img = document.createElement("img");
-        img.src = src;
-        img.alt = `Uploaded picture ${index + 1}`;
-        grid.appendChild(img);
-      });
-    }
-
-    function readFileAsDataURL(file) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
     }
 
     async function handleImageUpload(event) {
       const files = Array.from(event.target.files || []);
       if (!files.length) return;
 
-      const dataUrls = await Promise.all(files.map(readFileAsDataURL));
-      const current = getStoredImages();
-      setStoredImages(current.concat(dataUrls));
-      renderUploadedImages();
-      event.target.value = "";
+      const formData = new FormData();
+      files.forEach((file) => formData.append("pictures", file));
+
+      try {
+        const response = await fetch("/api/pictures", {
+          method: "POST",
+          body: formData
+        });
+        if (!response.ok) throw new Error("Upload failed");
+        await renderUploadedImages();
+      } catch (error) {
+        alert("Image upload failed. Please try again.");
+      } finally {
+        event.target.value = "";
+      }
     }
 
     function setupTabs() {

@@ -9,6 +9,8 @@
     "dev": "node --watch server.js"
   },
   "dependencies": {
-    "express": "^4.21.2"
+    "@aws-sdk/client-s3": "^3.1007.0",
+    "express": "^4.21.2",
+    "multer": "^2.1.1"
   }
 }

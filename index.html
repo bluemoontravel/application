@@ -87,39 +87,33 @@
   </div>
 
   <script>
-    const STORAGE_KEY = "bluemoon_pictures";
-
-    function getStoredImages() {
-      try {
-        return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-      } catch (e) {
-        return [];
-      }
-    }
-
-    function renderGallery() {
+    async function renderGallery() {
       const gallery = document.getElementById("gallery");
       const empty = document.getElementById("galleryEmpty");
-      const images = getStoredImages();
 
       gallery.innerHTML = "";
-      if (!images.length) {
+      try {
+        const response = await fetch("/api/pictures");
+        if (!response.ok) throw new Error("Failed to load");
+        const images = await response.json();
+
+        if (!images.length) {
+          empty.style.display = "block";
+          return;
+        }
+
+        empty.style.display = "none";
+        images.forEach((src, index) => {
+          const img = document.createElement("img");
+          img.src = src;
+          img.alt = `BlueMoon picture ${index + 1}`;
+          gallery.appendChild(img);
+        });
+      } catch (error) {
+        empty.textContent = "Failed to load pictures.";
         empty.style.display = "block";
-        return;
       }
-
-      empty.style.display = "none";
-      images.forEach((src, index) => {
-        const img = document.createElement("img");
-        img.src = src;
-        img.alt = `BlueMoon picture ${index + 1}`;
-        gallery.appendChild(img);
-      });
     }
-
-    window.addEventListener("storage", (event) => {
-      if (event.key === STORAGE_KEY) renderGallery();
-    });
 
     renderGallery();
   </script>
